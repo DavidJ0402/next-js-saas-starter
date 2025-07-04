@@ -34,7 +34,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "test-env.mts"  ],
   "exclude": [
     "node_modules"
   ]
