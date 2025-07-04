@@ -1,81 +1,77 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
+import { useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
   CardElement,
   useStripe,
   useElements,
-} from "@stripe/react-stripe-js";
+} from '@stripe/react-stripe-js';
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-);
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
-function CheckoutForm({ customerId }: { customerId: string }) {
+interface PaymentFormProps {
+  customerId: string | null;
+}
+
+export default function PaymentForm({ customerId }: PaymentFormProps) {
+  return (
+    <Elements stripe={stripePromise}>
+      <CheckoutForm customerId={customerId} />
+    </Elements>
+  );
+}
+
+function CheckoutForm({ customerId }: PaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!stripe || !elements) return;
 
-    const cardElement = elements.getElement(CardElement);
-    if (!cardElement) return;
+    setLoading(true);
+    setMessage('');
 
-    const res = await fetch("/api/stripe/setup-intent", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ customerId }),
-    });
-
-    const { clientSecret, error: setupError } = await res.json();
-
-    if (setupError) {
-      setError(setupError);
+    const card = elements.getElement(CardElement);
+    if (!card) {
+      setMessage('No se encontró el elemento de tarjeta.');
+      setLoading(false);
       return;
     }
 
-    const result = await stripe.confirmCardSetup(clientSecret, {
-      payment_method: {
-        card: cardElement,
-      },
+    const { error, paymentMethod } = await stripe.createPaymentMethod({
+      type: 'card',
+      card,
     });
 
-    if (result.error) {
-      setError(result.error.message ?? "Error al guardar tarjeta");
+    if (error) {
+      setMessage(error.message || 'Ocurrió un error.');
     } else {
-      setSuccess(true);
-      setError(null);
+      setMessage('Método de pago agregado exitosamente.');
+
+      // Aquí llamas a tu API para guardar paymentMethod.id en tu base de datos
+      // await fetch('/api/save-payment-method', { method: 'POST', body: JSON.stringify({ paymentMethodId: paymentMethod.id, customerId }) })
     }
+
+    setLoading(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-      <CardElement />
+    <form onSubmit={handleSubmit} className="max-w-md space-y-4">
+      <CardElement className="border p-2 rounded" />
       <button
         type="submit"
-        disabled={!stripe}
-        className="bg-blue-600 text-white p-2 rounded"
+        disabled={!stripe || loading}
+        className="bg-blue-600 text-white px-4 py-2 rounded"
       >
-        Guardar método de pago
+        {loading ? 'Procesando...' : 'Agregar método de pago'}
       </button>
-      {error && <div className="text-red-500">{error}</div>}
-      {success && (
-        <div className="text-green-600">Tarjeta guardada correctamente</div>
-      )}
+      {message && <p className="mt-2 text-red-500">{message}</p>}
     </form>
-  );
-}
-
-export default function PaymentForm({ customerId }: { customerId: string }) {
-  return (
-    <Elements stripe={stripePromise}>
-      <CheckoutForm customerId={customerId} />
-    </Elements>
   );
 }

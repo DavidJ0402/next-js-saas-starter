@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth/session';
-// import { db } from "@/lib/db";
-// import PaymentForm from "@/components/PaymentForm";
+import { db } from '@/lib/db/drizzle';
+import PaymentForm from '@/components/ui/PaymentForm';
 
 export default async function PaymentPage() {
   const session = await getSession();
@@ -10,24 +10,22 @@ export default async function PaymentPage() {
     return <p className="text-red-500">Debes iniciar sesión para acceder.</p>;
   }
 
-  // Aquí se debería obtener el stripe_customer_id desde la base de datos
-  // const profile = await db
-  //   .selectFrom("profiles")
-  //   .select("stripe_customer_id")
-  //   .where("id", "=", user.id)
-  //   .executeTakeFirst();
-
-  // const customerId = profile?.stripe_customer_id;
-
-  // if (!customerId) {
-  //   return <p className="text-red-500">No se encontró un ID de cliente de Stripe.</p>;
-  // }
+  // Consulta para ver si el usuario tiene un método de pago (ejemplo con tabla `payment_methods`)
+  const paymentMethod = await db
+    .selectFrom('payment_methods')
+    .select('id')
+    .where('user_id', '=', user.id)
+    .executeTakeFirst();
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Agregar Método de Pago</h1>
-      <p className="text-gray-600">Componente de formulario aún no implementado.</p>
-      {/* <PaymentForm customerId={customerId} /> */}
+      <h1 className="text-2xl font-bold mb-4">Método de Pago</h1>
+      {paymentMethod ? (
+        <p className="text-green-600">¡Ya tienes un método de pago configurado!</p>
+      ) : (
+        // Enviar el customerId si tienes uno guardado (o null)
+        <PaymentForm customerId="tu_customer_id_aqui" />
+      )}
     </div>
   );
 }

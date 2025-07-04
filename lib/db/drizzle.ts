@@ -1,13 +1,21 @@
+// lib/db/drizzle.ts
+
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
-import dotenv from 'dotenv';
 
-dotenv.config();
+// Evita usar dotenv aquí, Next.js ya carga las variables de entorno automáticamente desde `.env.local`
+// dotenv.config(); ← ¡NO ES NECESARIO EN NEXT.JS!
 
-if (!process.env.POSTGRES_URL) {
+// Validación explícita de la variable
+const connectionString = process.env.POSTGRES_URL;
+
+if (!connectionString) {
   throw new Error('POSTGRES_URL environment variable is not set');
 }
 
-export const client = postgres(process.env.POSTGRES_URL);
+const client = postgres(connectionString, {
+  max: 1, // Para evitar múltiples conexiones en serverless/Edge
+});
+
 export const db = drizzle(client, { schema });
