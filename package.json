@@ -11,6 +11,9 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@prisma/client": "^6.11.1",
+    "@stripe/react-stripe-js": "^3.7.0",
+    "@stripe/stripe-js": "^7.4.0",
     "@tailwindcss/postcss": "4.1.7",
     "@types/node": "^22.15.18",
     "@types/react": "19.1.4",
@@ -27,6 +30,7 @@
     "next": "15.4.0-canary.47",
     "postcss": "^8.5.3",
     "postgres": "^3.4.5",
+    "prisma": "^6.11.1",
     "radix-ui": "^1.4.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
