@@ -30,10 +30,15 @@ export async function signToken(payload: SessionData) {
 }
 
 export async function verifyToken(input: string) {
-  const { payload } = await jwtVerify(input, key, {
-    algorithms: ['HS256'],
-  });
-  return payload as SessionData;
+  try {
+    const { payload } = await jwtVerify(input, key, {
+      algorithms: ['HS256'],
+    });
+    return payload as SessionData;
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    throw error;
+  }
 }
 
 export async function getSession() {
@@ -60,17 +65,22 @@ export async function setSession(user: NewUser) {
     throw new Error('setSession can only be called on the server');
   }
   
-  const { cookies } = await import('next/headers');
-  const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const session: SessionData = {
-    user: { id: user.id! },
-    expires: expiresInOneDay.toISOString(),
-  };
-  const encryptedSession = await signToken(session);
-  (await cookies()).set('session', encryptedSession, {
-    expires: expiresInOneDay,
-    httpOnly: true,
-    secure: true,
-    sameSite: 'lax',
-  });
+  try {
+    const { cookies } = await import('next/headers');
+    const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const session: SessionData = {
+      user: { id: user.id! },
+      expires: expiresInOneDay.toISOString(),
+    };
+    const encryptedSession = await signToken(session);
+    (await cookies()).set('session', encryptedSession, {
+      expires: expiresInOneDay,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+  } catch (error) {
+    console.error('Error setting session:', error);
+    throw error;
+  }
 }
