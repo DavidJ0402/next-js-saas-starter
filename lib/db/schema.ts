@@ -17,6 +17,7 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
+  stripeCustomerId: text('stripe_customer_id'),
 });
 
 export const teams = pgTable('teams', {

@@ -11,19 +11,22 @@ import {
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
+
 interface PaymentFormProps {
   customerId: string | null;
+  onSuccess?: (info: { last4: string }) => void;
 }
 
-export default function PaymentForm({ customerId }: PaymentFormProps) {
+
+export default function PaymentForm({ customerId, onSuccess }: PaymentFormProps) {
   return (
     <Elements stripe={stripePromise}>
-      <CheckoutForm customerId={customerId} />
+      <CheckoutForm customerId={customerId} onSuccess={onSuccess} />
     </Elements>
   );
 }
 
-function CheckoutForm({ customerId }: PaymentFormProps) {
+function CheckoutForm({ customerId, onSuccess }: PaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -49,11 +52,14 @@ function CheckoutForm({ customerId }: PaymentFormProps) {
       card,
     });
 
+
     if (error) {
       setMessage(error.message || 'Ocurrió un error.');
     } else {
       setMessage('Método de pago agregado exitosamente.');
-
+      if (onSuccess && paymentMethod && paymentMethod.card) {
+        onSuccess({ last4: paymentMethod.card.last4 });
+      }
       // Aquí llamas a tu API para guardar paymentMethod.id en tu base de datos
       // await fetch('/api/save-payment-method', { method: 'POST', body: JSON.stringify({ paymentMethodId: paymentMethod.id, customerId }) })
     }

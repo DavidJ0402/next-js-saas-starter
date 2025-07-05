@@ -43,6 +43,7 @@ export async function createCheckoutSession({
     }
   });
 
+
   redirect(session.url!);
 }
 
@@ -149,19 +150,21 @@ export async function handleSubscriptionChange(
 export async function getStripePrices() {
   const prices = await stripe.prices.list({
     expand: ['data.product'],
-    active: true,
-    type: 'recurring'
+    active: true
   });
 
-  return prices.data.map((price) => ({
-    id: price.id,
-    productId:
-      typeof price.product === 'string' ? price.product : price.product.id,
-    unitAmount: price.unit_amount,
-    currency: price.currency,
-    interval: price.recurring?.interval,
-    trialPeriodDays: price.recurring?.trial_period_days
-  }));
+  return prices.data.map((price: any) => {
+    const product = typeof price.product === 'string' ? undefined : price.product;
+    return {
+      id: price.id,
+      productId: typeof price.product === 'string' ? price.product : price.product.id,
+      unitAmount: price.unit_amount,
+      currency: price.currency,
+      interval: price.recurring?.interval || 'one_time',
+      trialPeriodDays: price.recurring?.trial_period_days,
+      productImage: product?.images?.[0] || null,
+    };
+  });
 }
 
 export async function getStripeProducts() {
@@ -170,10 +173,11 @@ export async function getStripeProducts() {
     expand: ['data.default_price']
   });
 
-  return products.data.map((product) => ({
+  return products.data.map((product: any) => ({
     id: product.id,
     name: product.name,
     description: product.description,
+    images: product.images,
     defaultPriceId:
       typeof product.default_price === 'string'
         ? product.default_price
