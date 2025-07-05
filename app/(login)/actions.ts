@@ -86,10 +86,27 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
     };
   }
 
+
   await Promise.all([
     setSession(foundUser),
     logActivity(foundTeam?.id, foundUser.id, ActivityType.SIGN_IN)
   ]);
+
+  // Notificar a N8N del login exitoso
+  try {
+    await fetch('https://davidj0402.app.n8n.cloud/webhook-test/74f6c7e0-9ddf-48bb-9e22-b7a0e6d82d67', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: foundUser.email,
+        name: foundUser.name,
+        id: foundUser.id
+      }),
+    });
+  } catch (e) {
+    // Opcional: loguear error, pero no interrumpir el login
+    console.error('Error notificando a N8N:', e);
+  }
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
