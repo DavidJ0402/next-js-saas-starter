@@ -1,6 +1,5 @@
 import { compare, hash } from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
 import { NewUser } from '@/lib/db/schema';
 
 const key = new TextEncoder().encode(process.env.AUTH_SECRET);
@@ -38,12 +37,30 @@ export async function verifyToken(input: string) {
 }
 
 export async function getSession() {
-  const session = (await cookies()).get('session')?.value;
-  if (!session) return null;
-  return await verifyToken(session);
+  // Solo importamos cookies cuando realmente lo necesitamos en el servidor
+  if (typeof window !== 'undefined') {
+    // En el cliente, no podemos acceder a cookies del servidor
+    return null;
+  }
+  
+  try {
+    const { cookies } = await import('next/headers');
+    const session = (await cookies()).get('session')?.value;
+    if (!session) return null;
+    return await verifyToken(session);
+  } catch (error) {
+    console.error('Error getting session:', error);
+    return null;
+  }
 }
 
 export async function setSession(user: NewUser) {
+  // Solo importamos cookies cuando realmente lo necesitamos en el servidor
+  if (typeof window !== 'undefined') {
+    throw new Error('setSession can only be called on the server');
+  }
+  
+  const { cookies } = await import('next/headers');
   const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const session: SessionData = {
     user: { id: user.id! },

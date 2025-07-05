@@ -1,21 +1,43 @@
 'use client';
-import { checkoutAction } from '@/lib/payments/actions';
 import { Check } from 'lucide-react';
-import { getStripePrices, getStripeProducts } from '@/lib/payments/stripe';
 import PaymentForm from '@/components/ui/PaymentForm';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-// Prices are fresh for one hour max
-export const revalidate = 3600;
+export default function Page() {
+  const [prices, setPrices] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [pricesRes, productsRes] = await Promise.all([
+          fetch('/api/stripe/prices'),
+          fetch('/api/stripe/products')
+        ]);
+        
+        const pricesData = await pricesRes.json();
+        const productsData = await productsRes.json();
+        
+        setPrices(pricesData);
+        setProducts(productsData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
 
-import React from 'react';
+    fetchData();
+  }, []);
 
-export default async function Page() {
-  const [prices, products]: [any[], any[]] = await Promise.all([
-    getStripePrices(),
-    getStripeProducts(),
-  ]);
+  if (loading) {
+    return (
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center">Loading...</div>
+      </main>
+    );
+  }
 
   return <PricingPlans prices={prices} products={products} />;
 }

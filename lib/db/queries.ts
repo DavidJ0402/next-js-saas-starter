@@ -4,45 +4,39 @@ import { activityLogs, teamMembers, teams, users } from './schema';
 import { verifyToken } from '@/lib/auth/session';
 
 export async function getUser(sessionValue?: string) {
-  // Si no se proporciona sessionValue, intentamos obtenerlo dinámicamente
   if (!sessionValue) {
-    // Solo importamos cookies cuando realmente lo necesitamos
-    const { cookies } = await import('next/headers');
-    const sessionCookie = (await cookies()).get('session');
-    if (!sessionCookie || !sessionCookie.value) {
+    return null;
+  }
+
+  try {
+    const sessionData = await verifyToken(sessionValue);
+    if (
+      !sessionData ||
+      !sessionData.user ||
+      typeof sessionData.user.id !== 'number'
+    ) {
       return null;
     }
-    sessionValue = sessionCookie.value;
-  }
 
-  if (!sessionValue) {
+    if (new Date(sessionData.expires) < new Date()) {
+      return null;
+    }
+
+    const user = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, sessionData.user.id), isNull(users.deletedAt)))
+      .limit(1);
+
+    if (user.length === 0) {
+      return null;
+    }
+
+    return user[0];
+  } catch (error) {
+    console.error('Error verifying session:', error);
     return null;
   }
-
-  const sessionData = await verifyToken(sessionValue);
-  if (
-    !sessionData ||
-    !sessionData.user ||
-    typeof sessionData.user.id !== 'number'
-  ) {
-    return null;
-  }
-
-  if (new Date(sessionData.expires) < new Date()) {
-    return null;
-  }
-
-  const user = await db
-    .select()
-    .from(users)
-    .where(and(eq(users.id, sessionData.user.id), isNull(users.deletedAt)))
-    .limit(1);
-
-  if (user.length === 0) {
-    return null;
-  }
-
-  return user[0];
 }
 
 export async function getTeamByStripeCustomerId(customerId: string) {
