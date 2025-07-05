@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { ActivityType } from '@/lib/db/schema';
 import { getActivityLogs } from '@/lib/db/queries';
+import { cookies } from 'next/headers';
 
 const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.SIGN_UP]: UserPlus,
@@ -69,7 +70,8 @@ function formatAction(action: ActivityType): string {
 }
 
 export default async function ActivityPage() {
-  const logs = await getActivityLogs();
+  const sessionCookie = (await cookies()).get('session');
+  const logs = await getActivityLogs(sessionCookie?.value);
 
   return (
     <section className="flex-1 p-4 lg:p-8">

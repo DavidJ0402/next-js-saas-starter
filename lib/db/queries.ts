@@ -1,16 +1,25 @@
 import { desc, and, eq, isNull } from 'drizzle-orm';
 import { db } from './drizzle';
 import { activityLogs, teamMembers, teams, users } from './schema';
-import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
-export async function getUser() {
-  const sessionCookie = (await cookies()).get('session');
-  if (!sessionCookie || !sessionCookie.value) {
+export async function getUser(sessionValue?: string) {
+  // Si no se proporciona sessionValue, intentamos obtenerlo dinámicamente
+  if (!sessionValue) {
+    // Solo importamos cookies cuando realmente lo necesitamos
+    const { cookies } = await import('next/headers');
+    const sessionCookie = (await cookies()).get('session');
+    if (!sessionCookie || !sessionCookie.value) {
+      return null;
+    }
+    sessionValue = sessionCookie.value;
+  }
+
+  if (!sessionValue) {
     return null;
   }
 
-  const sessionData = await verifyToken(sessionCookie.value);
+  const sessionData = await verifyToken(sessionValue);
   if (
     !sessionData ||
     !sessionData.user ||
@@ -78,8 +87,8 @@ export async function getUserWithTeam(userId: number) {
   return result[0];
 }
 
-export async function getActivityLogs() {
-  const user = await getUser();
+export async function getActivityLogs(sessionValue?: string) {
+  const user = await getUser(sessionValue);
   if (!user) {
     throw new Error('User not authenticated');
   }
@@ -99,8 +108,8 @@ export async function getActivityLogs() {
     .limit(10);
 }
 
-export async function getTeamForUser() {
-  const user = await getUser();
+export async function getTeamForUser(sessionValue?: string) {
+  const user = await getUser(sessionValue);
   if (!user) {
     return null;
   }
